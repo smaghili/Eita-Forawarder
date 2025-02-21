@@ -1,0 +1,28 @@
+{
+    "telegram": {
+        "api_id": "-----",
+        "api_hash": "-----",
+        "session_name": "eitaa_forwarder_session",
+        "default_targets": [-11]
+    },
+    "eitaa": {
+        "channels": [
+            {
+                "id": "-69913786",
+                "name": "Channel 1 Name",
+                "telegram_targets": [-11],
+                "status": "active"
+            }
+        ],
+        "check_interval": 60,
+        "login_check_interval": 900,
+        "error_handling": {
+            "max_errors": 5
+        }
+    },
+    "paths": {
+        "images_dir": "channel_images",
+        "session_file": "auth.json",
+        "last_message_file": "last_message.json"
+    }
+} 
