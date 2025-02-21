@@ -8,7 +8,7 @@
     "eitaa": {
         "channels": [
             {
-                "id": "-69913786",
+                "id": "-6",
                 "name": "Channel 1 Name",
                 "telegram_targets": [-11],
                 "status": "active"
