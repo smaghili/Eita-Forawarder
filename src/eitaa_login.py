@@ -265,40 +265,44 @@ class EitaaLogin:
             self.page.wait_for_selector('.chatlist-container', timeout=30000)  # 30 ثانیه صبر برای لود لیست چت‌ها
             time.sleep(5)  # افزایش از 2 به 5 ثانیه برای اطمینان از لود کامل
 
+            # بررسی دقیق وضعیت لاگین قبل از ادامه
+            login_page = self.page.query_selector('.tabs-tab.page-sign.active')
+            if login_page:
+                # فقط در این حالت که واقعاً صفحه لاگین نمایش داده شده، سشن را پاک می‌کنیم
+                error_msg = (
+                    "⚠️ خطای دسترسی به ایتا\n\n"
+                    "❌ سشن معتبر نیست\n"
+                    "🔑 نیاز به لاگین مجدد"
+                )
+                message_processor.telegram_handler.queue_message(error_msg)
+                
+                # پاک کردن فایل auth.json
+                session_file = os.path.join(base_dir, 'config', self.config['paths']['session_file'])
+                if os.path.exists(session_file):
+                    os.remove(session_file)
+                    self.info_logger.info("Removed expired auth file")
+                
+                # برنامه باید بسته شود
+                raise Exception("Session expired, login required")
+
             # Click on the channel
             channel_selector = f'li.chatlist-chat[data-peer-id="{channel_id}"]'
             channel = self.page.query_selector(channel_selector)
             
             if not channel:
-                # بلافاصله چک می‌کنیم آیا لاگ‌اوت شده
-                if self.page.query_selector('.tabs-tab.page-sign.active'):
-                    error_msg = (
-                        "⚠️ خطای دسترسی به ایتا\n\n"
-                        "❌ سشن معتبر نیست\n"
-                        "🔑 نیاز به لاگین مجدد"
-                    )
-                    message_processor.telegram_handler.queue_message(error_msg)
-                    # پاک کردن فایل auth.json
-                    session_file = os.path.join(base_dir, 'config', self.config['paths']['session_file'])
-                    if os.path.exists(session_file):
-                        os.remove(session_file)
-                        self.info_logger.info("Removed expired auth file")
-                    # برنامه باید بسته شود
-                    raise Exception("Session expired, login required")
-                else:
-                    # کانال پیدا نشده ولی لاگ‌اوت نیستیم
-                    error_msg = f"⚠️ کانال {channel_id} پیدا نشد\n\nکانال غیرفعال شد."
-                    message_processor.telegram_handler.queue_message(error_msg)
-                    # تغییر وضعیت کانال به disabled
-                    for ch in self.config['eitaa']['channels']:
-                        if ch['id'] == channel_id:
-                            ch['status'] = 'disabled'
-                            break
-                    # ذخیره تغییرات در کانفیگ
-                    config_path = os.path.join(base_dir, 'config', 'config.json')
-                    with open(config_path, 'w', encoding='utf-8') as f:
-                        json.dump(self.config, f, indent=4, ensure_ascii=False)
-                    return None
+                # در این حالت کانال پیدا نشده، اما لاگین هستیم
+                error_msg = f"⚠️ کانال {channel_id} پیدا نشد\n\nکانال غیرفعال شد."
+                message_processor.telegram_handler.queue_message(error_msg)
+                # تغییر وضعیت کانال به disabled
+                for ch in self.config['eitaa']['channels']:
+                    if ch['id'] == channel_id:
+                        ch['status'] = 'disabled'
+                        break
+                # ذخیره تغییرات در کانفیگ
+                config_path = os.path.join(base_dir, 'config', 'config.json')
+                with open(config_path, 'w', encoding='utf-8') as f:
+                    json.dump(self.config, f, indent=4, ensure_ascii=False)
+                return None
             
             else:
                 channel.click()

@@ -26,12 +26,19 @@ User=root
 Group=root
 WorkingDirectory=${PROJECT_DIR}
 ExecStart=/usr/bin/python3 ${PROJECT_DIR}/main.py
-Restart=on-failure
+Restart=always
 RestartSec=60
 LimitNPROC=50
 LimitNOFILE=1024
+MemoryHigh=500M
 MemoryMax=600M
 TasksMax=100
+TimeoutStopSec=90
+KillMode=mixed
+KillSignal=SIGTERM
+
+# برای مدیریت بهتر حافظه
+OOMPolicy=restart
 
 [Install]
 WantedBy=multi-user.target

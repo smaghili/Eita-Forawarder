@@ -4,6 +4,7 @@ import os
 from queue import Queue
 import threading
 import time
+import sqlite3
 
 class TelegramHandler:
     def __init__(self, config, targets=None, info_logger=None, error_logger=None):
@@ -51,11 +52,31 @@ class TelegramHandler:
             try:
                 await asyncio.sleep(1)
                 
+                # Get session file path
+                session_name = self.config['telegram'].get('session_name', 'eitaa_forwarder_session')
+                session_file = f"{session_name}.session"
+                
+                # Check if session file exists and try to fix it if locked
+                if os.path.exists(session_file):
+                    try:
+                        # Try to open the database to check if it's locked
+                        conn = sqlite3.connect(session_file, timeout=1)
+                        conn.close()
+                    except sqlite3.OperationalError as e:
+                        if "database is locked" in str(e):
+                            self.info_logger.warning("Session database is locked. Attempting to fix...")
+                            # Rename the old session file
+                            backup_file = f"{session_file}.bak"
+                            os.rename(session_file, backup_file)
+                            self.info_logger.info(f"Renamed locked session file to {backup_file}")
+                
                 self.telegram_client = TelegramClient(
-                    self.config['telegram'].get('session_name', 'eitaa_forwarder_session'),
+                    session_name,
                     self.config['telegram']['api_id'],
-                    self.config['telegram']['api_hash']
+                    self.config['telegram']['api_hash'],
+                    connection_retries=10
                 )
+                
                 await self.telegram_client.connect()
                 self.info_logger.info("Please complete Telegram login if needed...")
                 await self.telegram_client.start()
@@ -74,6 +95,7 @@ class TelegramHandler:
                 
             except Exception as e:
                 self.error_logger.error(f"Telegram client error: {e}")
+                self.telegram_ready.set()  # Set the event to prevent hanging
                 
         loop.run_until_complete(run_client())
 
